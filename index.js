@@ -1,7 +1,7 @@
 require('dotenv').config()
 const express = require("express")
 const cors = require("cors")
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const app = express()
 
@@ -32,6 +32,16 @@ async function run() {
         const database = client.db("chillGamers")
         const reviewsCollection = database.collection("reviews")
 
+        // 02. Get operation:
+        app.get("/reviews", async (req, res) => {
+            const cursor = reviewsCollection.find()
+            const result = await cursor.toArray()
+            res.send(result)
+
+            console.log("All reviews fetched successfully", result);
+        })
+
+
 
         // 01. Post reviews
         app.post("/review", async (req, res) => {
@@ -42,6 +52,15 @@ async function run() {
             console.log("Review added successfully", result);
         })
 
+        // 03. Get : Finding specific review by id
+        app.get("/reviews/:id", async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+            const review = await reviewsCollection.findOne(query)
+            res.send(review)
+
+            console.log("Specific review fetched successfully", review);
+        })
 
 
 
