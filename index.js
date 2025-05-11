@@ -114,6 +114,18 @@ async function run() {
             res.send(result);
         });
 
+        
+        // Highest Rated Games
+        // Get Top 6 Highest Rated Games
+        app.get("/top-rated", async (req, res) => {
+            const result = await reviewsCollection
+                .find()
+                .sort({ rating: -1 }) // Sort by rating descending
+                .limit(6)
+                .toArray();
+            res.send(result);
+        });
+
 
         // USER ROUTES 
         // Store or update a user
