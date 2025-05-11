@@ -1,20 +1,18 @@
-require('dotenv').config()
-const express = require("express")
-const cors = require("cors")
+require('dotenv').config();
+const express = require("express");
+const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
-const app = express()
+const app = express();
+const port = process.env.PORT || 5000;
 
-const port = process.env.PORT || 5000
+// Middleware
+app.use(cors());
+app.use(express.json());
 
-app.use(cors())
-app.use(express.json())
-
-
+// MongoDB Setup
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.p62hq.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
-
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
     serverApi: {
         version: ServerApiVersion.v1,
@@ -23,68 +21,134 @@ const client = new MongoClient(uri, {
     }
 });
 
-
+// Main Function 
 async function run() {
     try {
-        // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
 
-        const database = client.db("chillGamers")
-        const reviewsCollection = database.collection("reviews")
-
-        // 02. Get operation:
-        app.get("/reviews", async (req, res) => {
-            const cursor = reviewsCollection.find()
-            const result = await cursor.toArray()
-            res.send(result)
-
-            console.log("All reviews fetched successfully", result);
-        })
+        const db = client.db("chillGamers");
+        const reviewsCollection = db.collection("reviews");
+        const usersCollection = db.collection("users");
+        const watchListCollection = db.collection("watchList");
 
 
-
-        // 01. Post reviews
+        // REVIEW ROUTES 
+        // Create a new review
         app.post("/review", async (req, res) => {
-            const review = req.body
-            const result = await reviewsCollection.insertOne(review)
-            res.send(result)
+            const review = req.body;
+            const result = await reviewsCollection.insertOne(review);
+            res.send(result);
+        });
 
-            console.log("Review added successfully", result);
-        })
+        // Get all reviews
+        app.get("/reviews", async (req, res) => {
+            const result = await reviewsCollection.find().toArray();
+            res.send(result);
+        });
 
-        // 03. Get : Finding specific review by id
-        app.get("/reviews/:id", async (req, res) => {
-            const id = req.params.id
-            const query = { _id: new ObjectId(id) }
-            const review = await reviewsCollection.findOne(query)
-            res.send(review)
+        // Get reviews by user email
+        app.get("/my-review", async (req, res) => {
+            const email = req.query.email;
+            const query = { userEmail: email };
+            const result = await reviewsCollection.find(query).toArray();
+            res.send(result);
+        });
 
-            console.log("Specific review fetched successfully", review);
-        })
+        // Get a single review by ID
+        app.get("/review/:id", async (req, res) => {
+            const id = req.params.id;
+            const review = await reviewsCollection.findOne({ _id: new ObjectId(id) });
+            res.send(review);
+        });
+
+        // Delete a review by ID
+        app.delete("/review/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await reviewsCollection.deleteOne(query);
+            res.send(result);
+        });
+
+        // Update review by ID
+        app.put("/review/:id", async (req, res) => {
+            const id = req.params.id;
+            const updatedData = req.body;
+
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    coverUrl: updatedData.coverUrl,
+                    title: updatedData.title,
+                    description: updatedData.description,
+                    rating: updatedData.rating,
+                    year: updatedData.year,
+                    genre: updatedData.genre
+                }
+            };
+
+            const result = await reviewsCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        });
 
 
+        // WATCHLIST ROUTES 
+        // Add to WatchList
+        app.post("/watchList", async (req, res) => {
+            const newItem = req.body;
+            const result = await watchListCollection.insertOne(newItem);
+            res.send(result);
+        });
+
+        // Get WatchList by user email
+        app.get("/watchList", async (req, res) => {
+            const email = req.query.email;
+            const query = { userEmail: email };
+            const result = await watchListCollection.find(query).toArray();
+            res.send(result);
+        });
+
+        // Delete WatchList item by ID
+        app.delete("/watchList/:id", async (req, res) => {
+            const id = req.params.id;
+            const result = await watchListCollection.deleteOne({ _id: new ObjectId(id) });
+            res.send(result);
+        });
 
 
+        // USER ROUTES 
+        // Store or update a user
+        app.put("/users", async (req, res) => {
+            const { email, name, photo } = req.body;
+            const filter = { email };
+            const updateDoc = { $set: { email, name, photo } };
+            const options = { upsert: true };
+            const result = await usersCollection.updateOne(filter, updateDoc, options);
+            res.send({ message: "User stored/updated successfully", result });
+        });
+
+        // Get all users
+        app.get("/users", async (req, res) => {
+            const result = await usersCollection.find().toArray();
+            res.send(result);
+        });
 
 
-        // Send a ping to confirm a successful connection
+        //Mongo Connection 
         await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+        console.log("Connected to MongoDB successfully.");
+
     } finally {
-        // Ensures that the client will close when you finish/error
         // await client.close();
     }
 }
+
 run().catch(console.dir);
 
 
-
-
 app.get("/", (req, res) => {
-    res.send("Hello World! Server is running!!!!!!!")
-})
+    res.send("Hello World! Server is running.");
+});
 
 app.listen(port, () => {
-    console.log(`The server is running : ${port} port.`);
-
-})
+    console.log(`Server is running on port ${port}`);
+});
