@@ -93,11 +93,36 @@ async function run() {
 
         // WATCHLIST ROUTES 
         // Add to WatchList
+        // app.post("/watchList", async (req, res) => {
+        //     const newItem = req.body;
+        //     const result = await watchListCollection.insertOne(newItem);
+        //     res.send(result);
+        // });
+
+        // Add to WatchList 
         app.post("/watchList", async (req, res) => {
             const newItem = req.body;
+
+            const query = {
+                userEmail: newItem.userEmail,
+                title: newItem.title,
+            };
+
+            const existingItem = await watchListCollection.findOne(query);
+
+            if (existingItem) {
+                return res.send(
+                    {
+                        success: false,
+                        message: "Already in WatchList"
+                    });
+            }
+
             const result = await watchListCollection.insertOne(newItem);
-            res.send(result);
+            res.send({ success: true, message: "Added to WatchList!", result });
         });
+
+
 
         // Get WatchList by user email
         app.get("/watchList", async (req, res) => {
@@ -114,13 +139,13 @@ async function run() {
             res.send(result);
         });
 
-        
+
         // Highest Rated Games
         // Get Top 6 Highest Rated Games
         app.get("/top-rated", async (req, res) => {
             const result = await reviewsCollection
                 .find()
-                .sort({ rating: -1 }) // Sort by rating descending
+                .sort({ rating: -1 }) 
                 .limit(6)
                 .toArray();
             res.send(result);
