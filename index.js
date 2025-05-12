@@ -36,6 +36,8 @@ async function run() {
         // Create a new review
         app.post("/review", async (req, res) => {
             const review = req.body;
+            review.rating = Number(review.rating);
+            review.year = Number(review.year);
             const result = await reviewsCollection.insertOne(review);
             res.send(result);
         });
@@ -80,8 +82,8 @@ async function run() {
                     coverUrl: updatedData.coverUrl,
                     title: updatedData.title,
                     description: updatedData.description,
-                    rating: updatedData.rating,
-                    year: updatedData.year,
+                    rating: Number(updatedData.rating),
+                    year: Number(updatedData.year),
                     genre: updatedData.genre
                 }
             };
@@ -145,7 +147,7 @@ async function run() {
         app.get("/top-rated", async (req, res) => {
             const result = await reviewsCollection
                 .find()
-                .sort({ rating: -1 }) 
+                .sort({ rating: -1 })
                 .limit(6)
                 .toArray();
             res.send(result);
