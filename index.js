@@ -121,7 +121,7 @@ async function run() {
             }
 
             const result = await watchListCollection.insertOne(newItem);
-            res.send({ success: true, message: "Added to WatchList!", result });
+            res.send(result);
         });
 
 
@@ -162,7 +162,7 @@ async function run() {
             const updateDoc = { $set: { email, name, photo } };
             const options = { upsert: true };
             const result = await usersCollection.updateOne(filter, updateDoc, options);
-            res.send({ message: "User stored/updated successfully", result });
+            res.send(result);
         });
 
         // Get all users
